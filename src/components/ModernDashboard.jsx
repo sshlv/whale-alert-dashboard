@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ModernChart from './ModernChart'
 import ModernMetricCard from './ModernMetricCard'
-import EnhancedAlertCard from './EnhancedAlertCard'
+import SuperModernAlertsSection from './SuperModernAlertsSection'
+import RealTimePrices from './RealTimePrices'
+import PriceStatusIndicator from './PriceStatusIndicator'
+import ForceRealPrices from './ForceRealPrices'
 import { useWhale } from '../context/WhaleContext'
+import { usePrices } from '../context/PriceContext'
+import FreeMarketAPIsService from '../services/freeMarketAPIs'
 import { 
   Activity, 
   DollarSign, 
@@ -21,15 +26,51 @@ import {
 const ModernDashboard = () => {
   // Accès aux vraies données du contexte
   const { alerts, stats, isMonitoring } = useWhale()
+  const { prices: contextPrices, loading: pricesLoading, error: pricesError, connectionStatus } = usePrices()
   
   const [marketData, setMarketData] = useState({
-    btcPrice: 45250,
-    ethPrice: 2340,
+    btcPrice: 0,
+    ethPrice: 0,
+    solPrice: 0,
+    rndrPrice: 0,
     totalAlerts: stats.totalAlerts || 0,
     activeWhales: stats.chainStats?.ETH?.alerts || 0,
-    marketCap: 1.2,
-    fearGreed: 65
+    marketCap: 0,
+    fearGreed: 0
   })
+  const [realPrices, setRealPrices] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  // 🔥 UTILISATION DU NOUVEAU CONTEXTE PRIX OPTIMISÉ
+  useEffect(() => {
+    console.log('🔍 [ModernDashboard] Context prices changed:', contextPrices)
+    console.log('🔍 [ModernDashboard] Prices loading:', pricesLoading)
+    console.log('🔍 [ModernDashboard] Connection status:', connectionStatus)
+    
+    if (contextPrices && Object.keys(contextPrices).length > 0) {
+      // Vérifier si les prix ne sont pas à 0 (ce qui signifierait qu'ils n'ont pas été récupérés)
+      const hasValidPrices = contextPrices.BTC?.price > 0 || contextPrices.ETH?.price > 0
+      
+      if (hasValidPrices) {
+        console.log('✅ [ModernDashboard] Using REAL context prices:', contextPrices)
+        
+        setRealPrices(contextPrices)
+        setMarketData(prev => ({
+          ...prev,
+          btcPrice: contextPrices.BTC?.price || 0,
+          ethPrice: contextPrices.ETH?.price || 0,
+          solPrice: contextPrices.SOL?.price || 0,
+          rndrPrice: contextPrices.RNDR?.price || 0
+        }))
+        setLoading(false)
+      } else {
+        console.warn('⚠️ [ModernDashboard] Context prices are zero, keeping loading state')
+      }
+    } else {
+      console.warn('⚠️ [ModernDashboard] No context prices available')
+    }
+  }, [contextPrices, pricesLoading, connectionStatus])
+  const marketService = new FreeMarketAPIsService()
 
   // Mise à jour avec les vraies données du contexte
   useEffect(() => {
@@ -40,39 +81,73 @@ const ModernDashboard = () => {
     }))
   }, [stats])
 
-  // Simulation prix crypto (peut être remplacé par freeMarketAPIs)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketData(prev => ({
-        ...prev,
-        btcPrice: prev.btcPrice + (Math.random() - 0.5) * 500,
-        ethPrice: prev.ethPrice + (Math.random() - 0.5) * 50
-      }))
-    }, 5000)
+  // 🚫 ANCIENNE FONCTION DÉSACTIVÉE - UTILISE MAINTENANT LE CONTEXTE OPTIMISÉ
+  const fetchRealPrices = async () => {
+    console.log('⚠️ [ModernDashboard] fetchRealPrices désactivé - utilise le contexte PriceContext')
+    // Cette fonction est maintenant remplacée par le contexte PriceContext optimisé
+    return
+  }
 
+  // 🚫 ANCIEN INTERVAL DÉSACTIVÉ - LE CONTEXTE GÈRE MAINTENANT LES MISES À JOUR
+  /*
+  useEffect(() => {
+    fetchRealPrices()
+    const interval = setInterval(fetchRealPrices, 10000)
     return () => clearInterval(interval)
   }, [])
+  */
+
+  const fmtUSD = (n) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(n || 0)
+
+  // 🔥 DEBUG: Log des prix pour voir ce qui se passe
+  console.log('🔍 [DEBUG CARDS] marketData:', marketData)
+  console.log('🔍 [DEBUG CARDS] realPrices:', realPrices)
+  console.log('🔍 [DEBUG CARDS] contextPrices:', contextPrices)
 
   const metricCards = [
     {
       title: "Prix Bitcoin",
-      value: `$${marketData.btcPrice.toLocaleString()}`,
-      change: "+2.45%",
-      changePercent: 2.45,
+      value: `$${new Intl.NumberFormat('en-US').format(
+        contextPrices.BTC?.price || marketData.btcPrice || 0
+      )}`,
+      change: `${(contextPrices.BTC?.change || realPrices.BTC?.change24h || 0) > 0 ? '+' : ''}${((contextPrices.BTC?.change || realPrices.BTC?.change24h || 0)).toFixed(2)}%`,
+      changePercent: contextPrices.BTC?.change || realPrices.BTC?.change24h || 0,
       icon: Bitcoin,
       color: "orange",
       trend: "up",
-      subtitle: "24h: +$1,230"
+      subtitle: `Bitcoin ${contextPrices.BTC?.price ? '🟢 LIVE' : '🔴 STATIC'}`
     },
     {
       title: "Prix Ethereum", 
-      value: `$${marketData.ethPrice.toLocaleString()}`,
-      change: "+1.23%",
-      changePercent: 1.23,
+      value: `$${new Intl.NumberFormat('en-US').format(
+        contextPrices.ETH?.price || marketData.ethPrice || 0
+      )}`,
+      change: `${(contextPrices.ETH?.change || realPrices.ETH?.change24h || 0) > 0 ? '+' : ''}${((contextPrices.ETH?.change || realPrices.ETH?.change24h || 0)).toFixed(2)}%`,
+      changePercent: contextPrices.ETH?.change || realPrices.ETH?.change24h || 0,
       icon: Coins,
       color: "blue",
       trend: "up",
-      subtitle: "24h: +$28"
+      subtitle: `Ethereum ${contextPrices.ETH?.price ? '🟢 LIVE' : '🔴 STATIC'}`
+    },
+    {
+      title: "Prix Solana",
+      value: `$${new Intl.NumberFormat('en-US').format(marketData.solPrice || 190)}`,
+      change: `${realPrices.SOL?.change24h > 0 ? '+' : ''}${(realPrices.SOL?.change24h || 4.2).toFixed(2)}%`,
+      changePercent: realPrices.SOL?.change24h || 4.2,
+      icon: Coins,
+      color: "purple",
+      trend: "up",
+      subtitle: "Solana"
+    },
+    {
+      title: "Prix Render",
+      value: `$${new Intl.NumberFormat('en-US').format(marketData.rndrPrice || 3.36)}`,
+      change: `${realPrices.RNDR?.change24h > 0 ? '+' : ''}${(realPrices.RNDR?.change24h || -1.2).toFixed(2)}%`,
+      changePercent: realPrices.RNDR?.change24h || -1.2,
+      icon: Coins,
+      color: "green",
+      trend: realPrices.RNDR?.change24h > 0 ? "up" : "down",
+      subtitle: "Render Token"
     },
     {
       title: "Alertes Aujourd'hui",
@@ -117,14 +192,48 @@ const ModernDashboard = () => {
   const recentAlerts = alerts.slice(0, 5)
 
   const topCryptos = [
-    { symbol: "BTC", name: "Bitcoin", price: 45250, change: 2.45, volume: "28.5B" },
-    { symbol: "ETH", name: "Ethereum", price: 2340, change: 1.23, volume: "15.2B" },
-    { symbol: "SOL", name: "Solana", price: 98.50, change: 4.67, volume: "2.1B" },
-    { symbol: "RNDR", name: "Render", price: 3.85, change: -1.20, volume: "145M" }
+    { 
+      symbol: "BTC", 
+      name: "Bitcoin", 
+      price: fmtUSD(realPrices.BTC?.price || marketData.btcPrice || 0), 
+      change: realPrices.BTC?.change24h || 0, 
+      volume: realPrices.BTC?.volume ? `$${fmtUSD(realPrices.BTC.volume)}` : "Chargement..."
+    },
+    { 
+      symbol: "ETH", 
+      name: "Ethereum", 
+      price: fmtUSD(realPrices.ETH?.price || marketData.ethPrice || 0), 
+      change: realPrices.ETH?.change24h || 0, 
+      volume: realPrices.ETH?.volume ? `$${fmtUSD(realPrices.ETH.volume)}` : "Chargement..."
+    },
+    { 
+      symbol: "SOL", 
+      name: "Solana", 
+      price: fmtUSD(realPrices.SOL?.price || marketData.solPrice || 0), 
+      change: realPrices.SOL?.change24h || 0, 
+      volume: realPrices.SOL?.volume ? `$${fmtUSD(realPrices.SOL.volume)}` : "Chargement..."
+    },
+    { 
+      symbol: "RNDR", 
+      name: "Render", 
+      price: fmtUSD(realPrices.RNDR?.price || marketData.rndrPrice || 0), 
+      change: realPrices.RNDR?.change24h || 0, 
+      volume: realPrices.RNDR?.volume ? `$${fmtUSD(realPrices.RNDR.volume)}` : "Chargement..."
+    }
   ]
 
   return (
     <div className="modern-animate space-y-6 p-6">
+      {/* 🔥 TEST DIRECT BINANCE API */}
+      <ForceRealPrices />
+      
+      {/* 🔥 INDICATEUR DE STATUS DES PRIX */}
+      <PriceStatusIndicator 
+        prices={contextPrices}
+        loading={pricesLoading}
+        error={pricesError}
+        connectionStatus={connectionStatus}
+      />
       {/* Hero Section */}
       <motion.div 
         className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 border border-slate-700"
@@ -140,9 +249,22 @@ const ModernDashboard = () => {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 ml-3">
                   Crypto
                 </span>
+                {/* 🔥 INDICATEUR SYSTÈME OPTIMISÉ */}
+                <span className={`ml-3 px-2 py-1 rounded-lg text-xs font-bold ${
+                  connectionStatus === 'connected' 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                }`}>
+                  {connectionStatus === 'connected' ? '🟢 PRIX RÉELS' : '🔴 PROBLÈME'}
+                </span>
               </h1>
               <p className="text-slate-400">
                 Surveillance en temps réel des mouvements de baleines et analyse du marché
+                {pricesError && (
+                  <span className="ml-2 text-red-400 text-sm">
+                    ⚠️ Erreur API: {pricesError}
+                  </span>
+                )}
               </p>
             </div>
             
@@ -183,8 +305,8 @@ const ModernDashboard = () => {
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl" />
       </motion.div>
 
-      {/* Métriques principales */}
-      <div className="modern-grid modern-grid-3">
+      {/* Métriques principales - TOUS LES PRIX */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         {metricCards.map((card, index) => (
           <ModernMetricCard
             key={card.title}
@@ -233,26 +355,7 @@ const ModernDashboard = () => {
               </span>
             </div>
 
-            <div className="space-y-4">
-              {recentAlerts.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucune alerte détectée</p>
-                  <p className="text-sm mt-2">
-                    {isMonitoring ? 'Surveillance active - En attente de transactions importantes' : 'Démarrez la surveillance pour voir les alertes'}
-                  </p>
-                </div>
-              ) : (
-                recentAlerts.map((alert, index) => (
-                  <EnhancedAlertCard
-                    key={alert.id}
-                    alert={alert}
-                    index={index}
-                    delay={0.4}
-                  />
-                ))
-              )}
-            </div>
+            <SuperModernAlertsSection alerts={recentAlerts} />
 
             <motion.button 
               className="w-full mt-4 modern-btn modern-btn-secondary"

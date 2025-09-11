@@ -110,7 +110,7 @@ export class TestAlertsService {
         trend: 'bearish',
         color: '#F7931A',
         timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-        hash: '0x123...abc',
+        hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         block: 18500001,
         is_test: true
       },
@@ -126,7 +126,7 @@ export class TestAlertsService {
         trend: 'bullish',
         color: '#627EEA',
         timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-        hash: '0x456...def',
+        hash: '0x456789abcdef123456789abcdef123456789abcdef123456789abcdef12345678',
         block: 18500002,
         is_test: true
       },
@@ -142,7 +142,7 @@ export class TestAlertsService {
         trend: 'bullish',
         color: '#14F195',
         timestamp: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-        hash: '0x789...ghi',
+        hash: '0x789abcdef123456789abcdef123456789abcdef123456789abcdef123456789abc',
         block: 18500003,
         is_test: true
       }

@@ -23,7 +23,7 @@ const ModernChart = ({
     { id: '1y', label: '1A' }
   ]
 
-  // Générer des données de démonstration réalistes
+  // Générer des données de démonstration réalistes (affichage compact clair)
   useEffect(() => {
     const generateData = () => {
       const points = timeframe === '1h' ? 60 : timeframe === '24h' ? 24 : timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 365
@@ -105,7 +105,7 @@ const ModernChart = ({
             <h3 className="modern-chart-title">{title}</h3>
             <div className="flex items-center space-x-3 mt-1">
               <span className="text-2xl font-bold text-white">
-                ${currentPrice.toLocaleString()}
+                ${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(currentPrice)}
               </span>
               <div className={`modern-metric-change ${isPositive ? 'positive' : 'negative'}`}>
                 {isPositive ? <TrendingUp className="w-3 h-3 inline mr-1" /> : <TrendingDown className="w-3 h-3 inline mr-1" />}

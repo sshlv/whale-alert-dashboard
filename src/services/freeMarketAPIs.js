@@ -40,7 +40,7 @@ class FreeMarketAPIsService {
     }
     
     this.cache = new Map()
-    this.cacheTimeout = 30000 // 30 secondes pour données fraîches
+    this.cacheTimeout = 15000 // 15 secondes pour données fraîches
     this.cryptoSymbols = {
       'BTC': { coingecko: 'bitcoin', coincap: 'bitcoin', symbol: 'BTCUSDT' },
       'ETH': { coingecko: 'ethereum', coincap: 'ethereum', symbol: 'ETHUSDT' },
@@ -97,25 +97,25 @@ class FreeMarketAPIsService {
     if (cached) return cached
 
     try {
-      // Essayer CoinGecko en premier (le plus fiable)
+      // 1) Préférer Binance (excellent en CORS côté navigateur)
+      const binanceData = await this.getBinancePrices()
+      if (binanceData) {
+        this.setCache(cacheKey, binanceData)
+        return binanceData
+      }
+
+      // 2) CoinGecko
       const coinGeckoData = await this.getCoinGeckoPrices()
       if (coinGeckoData) {
         this.setCache(cacheKey, coinGeckoData)
         return coinGeckoData
       }
 
-      // Fallback sur CoinCap
+      // 3) CoinCap
       const coinCapData = await this.getCoinCapPrices()
       if (coinCapData) {
         this.setCache(cacheKey, coinCapData)
         return coinCapData
-      }
-
-      // Fallback sur Binance
-      const binanceData = await this.getBinancePrices()
-      if (binanceData) {
-        this.setCache(cacheKey, binanceData)
-        return binanceData
       }
 
       throw new Error('Toutes les sources ont échoué')

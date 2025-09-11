@@ -8,7 +8,9 @@ import {
   DollarSign,
   Clock,
   Activity,
-  Minus
+  Minus,
+  ExternalLink,
+  Hash
 } from 'lucide-react'
 
 const EnhancedAlertCard = ({ alert, index, delay = 0 }) => {
@@ -165,6 +167,42 @@ const EnhancedAlertCard = ({ alert, index, delay = 0 }) => {
           </div>
         </div>
       </div>
+
+      {/* Hash de transaction */}
+      {alert.hash && (
+        <div className="bg-slate-800/30 rounded-lg p-3 mb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Hash className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-slate-400 uppercase tracking-wide">Transaction Hash</span>
+            </div>
+            <button
+              onClick={() => {
+                const getExplorerUrl = (type, hash) => {
+                  switch (type) {
+                    case 'BTC':
+                      return `https://blockstream.info/tx/${hash}`;
+                    case 'ETH':
+                      return `https://etherscan.io/tx/${hash}`;
+                    case 'SOL':
+                      return `https://explorer.solana.com/tx/${hash}`;
+                    default:
+                      return `https://etherscan.io/tx/${hash}`;
+                  }
+                };
+                window.open(getExplorerUrl(alert.type, alert.hash), '_blank');
+              }}
+              className="flex items-center space-x-1 px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-3 h-3 text-blue-400" />
+              <span className="text-xs text-blue-400 font-medium">Explorer</span>
+            </button>
+          </div>
+          <p className="text-xs text-slate-300 mt-2 font-mono break-all">
+            {alert.hash}
+          </p>
+        </div>
+      )}
 
       {/* Footer avec timestamp */}
       <div className="flex items-center justify-between text-xs text-slate-500">

@@ -126,6 +126,17 @@ export const WhaleProvider = ({ children }) => {
     // Démarrer la surveillance pour toutes les chaînes activées
     startMultiChainMonitoring()
     
+    // Générer 3 nouvelles alertes avec hash complets après 4 secondes
+    setTimeout(() => {
+      const newAlerts = TestAlertsService.generateMultipleTestAlerts(3)
+      newAlerts.forEach((alert, index) => {
+        setTimeout(() => {
+          addAlert(alert)
+          console.log('🔗 Alerte avec hash ajoutée:', alert.hash)
+        }, index * 2000) // Étaler sur 6 secondes
+      })
+    }, 4000)
+    
     // Démarrer les alertes de test périodiques
     TestAlertsService.startTestAlerts(addAlert, 20000) // Toutes les 20 secondes
   }
